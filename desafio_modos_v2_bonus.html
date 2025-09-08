@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Desafio dos Modos de Entrada — v2 (com bônus)</title>
+  <style>
+    :root {
+      --bg:#0f172a; /* slate-900 */
+      --panel:#111827; /* gray-900 */
+      --card:#1f2937; /* gray-800 */
+      --muted:#9ca3af; /* gray-400 */
+      --text:#f8fafc; /* slate-50 */
+      --accent:#22c55e; /* green-500 */
+      --wrong:#ef4444; /* red-500 */
+      --primary:#3b82f6; /* blue-500 */
+      --gold:#f59e0b;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:#0f172a;color:var(--text)}
+    .container{max-width:1000px;margin:0 auto;padding:24px}
+    header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:16px}
+    .brand{display:flex;align-items:center;gap:12px}
+    .logo{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--primary),#06b6d4)}
+    h1{font-size:clamp(20px,3vw,28px);margin:0}
+    .statbar{display:flex;gap:10px;flex-wrap:wrap}
+    .pill{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);padding:8px 12px;border-radius:999px;font-size:14px}
+    .pill b{color:var(--gold)}
+    .panel{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:16px}
+    .grid{display:grid;grid-template-columns:1fr;gap:16px}
+    @media(min-width:900px){.grid{grid-template-columns:1.2fr .8fr}}
+    .card{background:var(--card);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:20px}
+    .scenario{font-size:18px;line-height:1.5}
+    .tags{margin-top:10px;color:var(--muted);font-size:14px}
+    .answers{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+    @media(min-width:680px){.answers{grid-template-columns:repeat(3,1fr)}}
+    @media(min-width:1024px){.answers{grid-template-columns:repeat(6,1fr)}}
+    button.answer{background:#0b1227;border:1px solid rgba(255,255,255,.08);color:var(--text);padding:12px 10px;border-radius:12px;cursor:pointer;transition:.15s ease;font-weight:600;font-size:14px}
+    button.answer.correct{background:rgba(34,197,94,.15);border-color:var(--accent)}
+    button.answer.wrong{background:rgba(239,68,68,.12);border-color:var(--wrong)}
+    .footer{display:flex;justify-content:space-between;align-items:center;margin-top:10px;color:var(--muted);font-size:14px}
+    .side{display:flex;flex-direction:column;gap:16px}
+    .tile{display:flex;flex-direction:column;gap:8px}
+    .tile h3{margin:0;font-size:14px;color:var(--muted);font-weight:600;text-transform:uppercase}
+    .big{font-size:28px;font-weight:800}
+    .progress{height:10px;border-radius:999px;background:rgba(255,255,255,.07);overflow:hidden}
+    .progress>div{height:100%;background:linear-gradient(90deg,var(--primary),#22d3ee);width:0%}
+    .rationale{margin-top:12px;color:#d1fae5;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.25);padding:12px;border-radius:12px;display:none}
+    .controls{display:flex;gap:10px}
+    .btn{background:linear-gradient(135deg,#3b82f6,#22d3ee);border:none;color:#001026;padding:10px 14px;border-radius:12px;font-weight:800;cursor:pointer}
+    .btn.secondary{background:transparent;color:var(--text);border:1px solid rgba(255,255,255,.15)}
+    .endcard{display:none;text-align:center}
+    .endcard h2{font-size:28px;margin:0 0 8px}
+    .endcard p{color:var(--muted)}
+    .list{margin-top:12px;text-align:left}
+    .list li{margin:6px 0}
+    .small{font-size:12px;color:var(--muted)}
+
+    /* Overlay do bônus */
+    #bonusStage{position:fixed;inset:0;background:rgba(0,0,0,.8);display:none;align-items:center;justify-content:center;z-index:9999}
+    #bonusStage.show{display:flex}
+    .bonus-card{background:#111;border:1px solid #333;border-radius:16px;max-width:720px;width:95%;padding:20px;color:#eee;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+    .bonus-head{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:12px}
+    .bonus-modes{display:flex;gap:8px;flex-wrap:wrap}
+    .bonus-modes button{padding:8px 12px;border-radius:10px;border:1px solid #444;background:#1c1c1c;color:#eee;cursor:pointer}
+    .bonus-modes button.active{background:#2a2a2a;border-color:#888}
+
+    .bonus-body{display:grid;gap:16px}
+
+    /* GENIUS */
+    #geniusBoard{display:grid;grid-template-columns:repeat(2,120px);grid-template-rows:repeat(2,120px);gap:14px;justify-content:center;margin:auto}
+    .gTile{width:120px;height:120px;border-radius:16px;opacity:.85;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.35)}
+    .gTile[data-c="g"]{background:#00c853}
+    .gTile[data-c="r"]{background:#ff1744}
+    .gTile[data-c="y"]{background:#ffea00}
+    .gTile[data-c="b"]{background:#2979ff}
+    .gTile.flash{filter:brightness(1.6);opacity:1;transform:scale(1.03);transition:.18s}
+
+    /* FLAPPY */
+    #flappyWrap{display:flex;justify-content:center}
+    #flappy{background:#0b1b2b;border-radius:12px;border:1px solid #123654}
+
+    /* rodapé */
+    .bonus-foot{display:flex;align-items:center;justify-content:space-between;margin-top:8px;font-size:14px;color:#bbb}
+    .badge{background:#222;border:1px solid #444;border-radius:10px;padding:6px 10px}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand"><div class="logo"></div><h1>Desafio dos Modos de Entrada — v2</h1></div>
+      <div class="statbar">
+        <div class="pill">Pontos: <b id="score">0</b></div>
+        <div class="pill">Questão <b id="qnum">1</b>/<span id="qtotal">10</span></div>
+        <div class="pill">Tempo: <b id="timer">30s</b></div>
+        <div class="pill">Série: <b id="streak">0</b></div>
+      </div>
+    </header>
+
+    <div class="grid">
+      <div class="panel card">
+        <div class="scenario" id="scenario">Carregando cenário…</div>
+        <div class="tags" id="tags"></div>
+        <div class="answers" id="answers"></div>
+        <div class="rationale" id="rationale"></div>
+        <div class="footer">
+          <div class="controls">
+            <button class="btn" id="nextBtn" disabled>Próxima</button>
+            <button class="btn secondary" id="skipBtn">Pular</button>
+          </div>
+          <div class="small">Dica: responda rápido para ganhar bônus de tempo ⏱️</div>
+        </div>
+      </div>
+
+      <aside class="side">
+        <div class="card tile">
+          <h3>Modos de entrada</h3>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div class="pill">Exportação</div>
+            <div class="pill">Licenciamento</div>
+            <div class="pill">Franquia</div>
+            <div class="pill">Aliança estratégica</div>
+            <div class="pill">Fusão/Aquisição</div>
+            <div class="pill">Greenfield</div>
+          </div>
+        </div>
+        <div class="card tile">
+          <h3>Progresso</h3>
+          <div class="big" id="bigProgress">0%</div>
+          <div class="progress"><div id="progressBar"></div></div>
+        </div>
+        <div class="card tile endcard" id="endcard">
+          <h2>🏁 Fim do jogo!</h2>
+          <p id="summary"></p>
+          <ol class="list" id="review"></ol>
+          <div style="margin-top:12px;display:flex;gap:8px;justify-content:center">
+            <button class="btn" onclick="restart()">Jogar de novo</button>
+            <button class="btn secondary" onclick="toggleAnswers()">Mostrar/ocultar gabarito</button>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <footer style="margin-top:18px;color:var(--muted);text-align:center" class="small">
+      Feito para aulas de Administração • Modos de Entrada em Mercados Internacionais
+    </footer>
+  </div>
+
+  <!-- Overlay do BÔNUS (Multiplicador) -->
+  <div id="bonusStage" aria-hidden="true">
+    <div class="bonus-card">
+      <div class="bonus-head">
+        <h3 style="margin:0">BÔNUS FINAL — Multiplicador</h3>
+        <div class="bonus-modes">
+          <button id="modeGenius" class="active">Genius (memória)</button>
+          <button id="modeFlappy">Flappy (reflexo)</button>
+        </div>
+      </div>
+
+      <div class="bonus-body">
+        <!-- GENIUS -->
+        <div id="geniusSection" role="group" aria-label="Genius">
+          <div style="text-align:center;margin-bottom:8px">
+            <span class="badge">Acerte sequências crescentes por 45s</span>
+            <span class="badge">Multiplicador ↑ a cada rodada</span>
+          </div>
+          <div id="geniusBoard" style="display:none">
+            <div class="gTile" data-c="g"></div>
+            <div class="gTile" data-c="r"></div>
+            <div class="gTile" data-c="y"></div>
+            <div class="gTile" data-c="b"></div>
+          </div>
+          <div id="geniusMsg" style="text-align:center;color:#ccc">Clique em “Iniciar” para começar.</div>
+        </div>
+
+        <!-- FLAPPY -->
+        <div id="flappySection" style="display:none">
+          <div style="text-align:center;margin-bottom:8px">
+            <span class="badge">Desvie de obstáculos por até 30s</span>
+            <span class="badge">Multiplicador ↑ por obstáculo</span>
+          </div>
+          <div id="flappyWrap"><canvas id="flappy" width="360" height="520"></canvas></div>
+          <div id="flappyMsg" style="text-align:center;color:#ccc;margin-top:6px">Toque / Barra de Espaço para pular.</div>
+        </div>
+      </div>
+
+      <div class="bonus-foot">
+        <div>
+          <button id="bonusStart" class="badge">Iniciar</button>
+          <button id="bonusSkip" class="badge">Pular bônus</button>
+        </div>
+        <div id="bonusStatus" class="badge">×1.00</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =========================
+    // Banco de cenários (com +30 casos)
+    // =========================
+    const POOL = [
+      { text: "A Natura quer atender o norte da África com produção local e decide construir uma nova fábrica no Marrocos.", tags: ["Tarifas altas","Logística regional","Controle total"], answer: "Greenfield", why: "Greenfield oferece controle total sobre qualidade e cadeia de suprimentos quando ainda não há ativos locais." },
+      { text: "A Heineken entra no Brasil comprando uma cervejaria já estabelecida para ganhar market share rapidamente.", tags: ["Velocidade","Base de clientes","Capacidade existente"], answer: "Fusão/Aquisição", why: "Aquisição acelera a entrada aproveitando marca, distribuição e licenças existentes." },
+      { text: "Uma edtech brasileira vende seu software por assinatura para escolas no Chile direto do Brasil.", tags: ["SaaS","Baixa barreira","Vendas diretas"], answer: "Exportação", why: "Exportação (digital) é adequada quando o produto pode ser entregue à distância com poucas adaptações." },
+      { text: "A Disney permite que uma empresa local fabrique cadernos com personagens licenciados no México.", tags: ["IP","Royalties","Escala local"], answer: "Licenciamento", why: "Licenciamento monetiza propriedade intelectual e reduz investimento próprio em produção." },
+      { text: "Uma rede de cafeterias brasileira concede o uso da sua marca e formato de loja para operadores na Colômbia.", tags: ["Manual de operação","Treinamento","Taxas"], answer: "Franquia", why: "Franquia acelera expansão com capital de terceiros mantendo padrão e suporte." },
+      { text: "Uma fabricante de autopeças firma parceria com montadora indiana para co-desenvolver um componente.", tags: ["Know-how local","Compartilhar risco","P&D"], answer: "Aliança estratégica", why: "Aliança estratégica permite combinar recursos e conhecimento sem aquisição ou nova planta." },
+      { text: "Para entrar no Japão, uma foodtech brasileira fecha joint venture 50/50 com empresa local.", tags: ["Cultura","Regulação","Rede local"], answer: "Aliança estratégica", why: "JV é forma de aliança para dividir controle e acessar rede/regulação local." },
+      { text: "Uma marca de roupas cede o uso da marca e design para fabricação na Turquia mediante royalties.", tags: ["Marca","Propriedade intelectual","Baixo CAPEX"], answer: "Licenciamento", why: "Licenciamento quando o core é a marca/design e a produção é terceirizada localmente." },
+      { text: "Uma healthtech passa a vender seus dispositivos médicos para hospitais na Argentina via distribuidor.", tags: ["Distribuidor","Regulação","Market access"], answer: "Exportação", why: "Exportação indireta via distribuidor reduz complexidade regulatória inicial." },
+      { text: "Uma rede de academias compra um player médio na Espanha para ganhar presença imediata.", tags: ["Base instalada","Equipe","Localizações"], answer: "Fusão/Aquisição", why: "Aquisição permite captura de sinergias e acesso a pontos comerciais prime." },
+      { text: "Uma indústria de laticínios decide construir do zero uma planta no Peru para abastecer a região andina.", tags: ["Capex","Controle","Supply chain"], answer: "Greenfield", why: "Greenfield quando é necessário moldar operação a requisitos sanitários e logísticos específicos." },
+      { text: "Uma rede de fast-food brasileira expande para Angola oferecendo o formato de operação a operadores locais.", tags: ["Manual","Treinamento","Taxa inicial"], answer: "Franquia", why: "Franquia é indicada para varejo padronizado com forte suporte de marca e operação." },
+
+      // ---- Casos adicionais ----
+      { text: "Uma fintech brasileira oferece contas digitais para portugueses sem abrir filial, atendendo 100% online.", tags: ["Serviço digital","Escalabilidade","Baixo risco"], answer: "Exportação", why: "Serviços digitais permitem exportação direta, testando demanda com baixo investimento." },
+      { text: "Uma fabricante de cosméticos licencia sua fórmula de protetor solar para produção local na Indonésia.", tags: ["Clima tropical","Regulação sanitária","Royalties"], answer: "Licenciamento", why: "Regulação e logística favorecem produção local por terceiros mediante royalties." },
+      { text: "Rede de pizzarias concede franquias na África do Sul para empreendedores locais.", tags: ["Food service","Manual de operação","Capex do franqueado"], answer: "Franquia", why: "Modelo padronizado e reconhecível facilita expansão via franquias." },
+      { text: "Fabricante de equipamentos solares firma aliança com utility mexicana para projetos residenciais.", tags: ["Canal de vendas","Financiamento","Regulação"], answer: "Aliança estratégica", why: "Parceria com player local acelera adoção e navega regulação de energia." },
+      { text: "Uma empresa brasileira de snacks compra concorrente no Chile para usar rede de distribuição.", tags: ["Mercado estabelecido","Trade marketing","Escala"], answer: "Fusão/Aquisição", why: "Aquisição entrega acesso imediato a canais e quota de mercado." },
+      { text: "Montadora constrói nova planta no Vietnã para atender ASEAN.", tags: ["Custos","Acordos regionais","Customização"], answer: "Greenfield", why: "Nova planta otimiza custos e adapta produto a padrões regionais." },
+      { text: "Uma edutech fecha JV com universidade da Colômbia para co-ofertar MBAs online.", tags: ["Marca local","Credenciamento","Conteúdo"], answer: "Aliança estratégica", why: "JV combina reputação local com tecnologia de ensino." },
+      { text: "Marca premium de café vende grãos torrados para cafeterias na Alemanha.", tags: ["Qualidade","Logística","Contrato de fornecimento"], answer: "Exportação", why: "Exportação mantém controle de qualidade e exige baixo investimento inicial." },
+      { text: "Empresa de brinquedos licencia personagens de uma série brasileira para fabricantes na Polônia.", tags: ["IP brasileiro","Europa Central","Royalty"], answer: "Licenciamento", why: "Quando o valor principal é a marca/personagem, licenciar é mais ágil que produzir." },
+      { text: "Rede de farmácias adquire grupo médio em Portugal para acelerar expansão europeia.", tags: ["Regulação farmacêutica","Pontos comerciais","Equipe"], answer: "Fusão/Aquisição", why: "Aquisição aproveita licenças e localizações críticas já aprovadas." },
+      { text: "Startup agritech inicia produção local em Moçambique com nova unidade para processar castanha de caju.", tags: ["Matéria-prima local","Geração de emprego","Infraestrutura"], answer: "Greenfield", why: "Construção do zero perto da origem reduz custos logísticos e agrega valor local." },
+      { text: "Franquia de academias brasileiras entra no Paraguai com modelo de franquia de baixo custo.", tags: ["Capex franqueado","Marca","Padronização"], answer: "Franquia", why: "Formato replicável e capex do franqueado aceleram a capilaridade." },
+      { text: "Empresa de softwares fiscais firma parceria com consultoria local na Itália para integração tributária.", tags: ["Compliance","Integração","Cultura"], answer: "Aliança estratégica", why: "Parceiro local traduz regras e acelera adoção em clientes enterprise." },
+      { text: "Vinícola brasileira exporta espumantes para os EUA via importador/distribuidor especializado.", tags: ["Regulação álcool","Portfólio","Sommelier"], answer: "Exportação", why: "Importador especializado reduz barreiras e cuida da distribuição." },
+      { text: "Editora cede direitos de publicação de best-seller para uma casa editorial da Coreia do Sul.", tags: ["Tradução","Royalties","Prazo"], answer: "Licenciamento", why: "Licenciar direitos autorais é prática padrão para mercados estrangeiros." },
+      { text: "Empresa de logística compra operador no México para ampliar malha cross-border.", tags: ["Sinergias","Frota","Terminais"], answer: "Fusão/Aquisição", why: "Aquisição entrega ativos físicos e contratos de imediato." },
+      { text: "Martech brasileira e agência do Reino Unido firmam parceria para ofertar mídia programática local.", tags: ["Go-to-market","Base de clientes","Aprendizado"], answer: "Aliança estratégica", why: "Parceiro com carteira local reduz ciclo de vendas e adapta proposta." },
+      { text: "Empresa de chocolates concede franquias no Canadá para operar quiosques em malls.", tags: ["Sazonalidade","Operação simples","Marca"], answer: "Franquia", why: "Quiosques padronizados funcionam bem via franquias em shoppings." },
+      { text: "IoT brasileira licencia sua tecnologia de sensor para fabricante na Malásia.", tags: ["Hardware","IP","Escala asiática"], answer: "Licenciamento", why: "Fabricante local escala produção e reduz lead time na Ásia." },
+      { text: "Foodtech exporta hambúrguer vegetal congelado para Emirados Árabes por distribuidores halal.", tags: ["Certificação","Cadeia fria","Nicho"], answer: "Exportação", why: "Exportação via distribuidores certificados atende exigências halal sem planta local." },
+      { text: "Construtora brasileira ergue nova fábrica de pré-moldados na Colômbia.", tags: ["Obras locais","Customização","Prazo"], answer: "Greenfield", why: "Produção local reduz frete pesado e atende especificações de projetos." },
+      { text: "Grupo varejista compra e integra rede de lojas na Argentina.", tags: ["Turnaround","Pontos comerciais","Marca"], answer: "Fusão/Aquisição", why: "Compra acelera presença e aproveita sinergias operacionais." },
+      { text: "Biotech fecha aliança com hospital na Suíça para ensaios clínicos e codev.", tags: ["Pesquisa clínica","Regulação","Reputação"], answer: "Aliança estratégica", why: "Acesso a centros de excelência e compliance clínico via parceria." },
+      { text: "Marca de moda esportiva concede licenças para produção e venda na Austrália.", tags: ["Estacionalidade","Distribuição local","IP"], answer: "Licenciamento", why: "Licenciamento alavanca marca sem investir em operações próprias." },
+      { text: "Agroempresa monta planta de processamento de soja no Paraguai do zero.", tags: ["Matéria-prima","Incentivos","Exportar região"], answer: "Greenfield", why: "Proximidade do insumo justifica nova planta e captura de incentivos fiscais." },
+      { text: "Startup brasileira de meios de pagamento exporta API para lojistas no Peru.", tags: ["Integração","Checkout","Escala"], answer: "Exportação", why: "API-first facilita exportação sem presença física." },
+      { text: "Rede de clínicas de estética abre franquias em Moçambique com treinamento local.", tags: ["Serviço padronizado","Capacitação","Marca"], answer: "Franquia", why: "Franquia garante padrão e reduz necessidade de capital próprio." },
+      { text: "Empresa de softwares industriais forma JV com fabricante alemão para entrar no Benelux.", tags: ["Canal B2B","After-sales","Integração"], answer: "Aliança estratégica", why: "Combina produto e canal de venda/serviço já estabelecido." },
+      { text: "Bebidas funcionais compram start-up local na Itália para ganhar distribuição em farmácias.", tags: ["OTC","Canal saúde","Branding"], answer: "Fusão/Aquisição", why: "Aquisição entrega credibilidade no canal e rapidez na homologação." },
+      { text: "Marketplace brasileiro licencia sua tecnologia de marketplace para operador no México.", tags: ["Plataforma","Tecnologia","Escala"], answer: "Licenciamento", why: "Monetiza plataforma sem operar o marketplace localmente." },
+      { text: "Empresa de games exporta títulos mobile para Índia com adaptação de idioma e métodos de pagamento.", tags: ["Localização","App stores","Baixo CAPEX"], answer: "Exportação", why: "Distribuição digital facilita escala e testes de mercado." },
+      { text: "Fabricante de EPC solar constrói fábrica de módulos em Marrocos.", tags: ["Cadeia regional","Incentivos","Nearshoring"], answer: "Greenfield", why: "Nova planta captura incentivos e reduz lead time para UE." },
+      { text: "Rede de idiomas concede franquias no Uruguai com material didático próprio.", tags: ["Treinamento","Brand playbook","Royalty"], answer: "Franquia", why: "Conteúdo e método padronizado escalam via franqueados." },
+      { text: "Martech compra adtech local na Espanha para integrar DMP e CDP.", tags: ["Tecnologia","Carteira de clientes","Sinergia"], answer: "Fusão/Aquisição", why: "Integração de stack e carteira acelera entrada competitiva." },
+      { text: "Cooperativa de café firma aliança com torrefadora francesa para marca conjunta na UE.", tags: ["Fair trade","Branding","Canal premium"], answer: "Aliança estratégica", why: "Co-branding com player local agrega valor e acesso a nicho premium." }
+    ];
+
+    const MODES = ["Exportação","Licenciamento","Franquia","Aliança estratégica","Fusão/Aquisição","Greenfield"];
+
+    // =========================
+    // Estado do jogo
+    // =========================
+    const TOTAL_QUESTIONS = 10;
+    const TIME_LIMIT = 30; // segundos por questão
+
+    let deck = [];        // cenários selecionados
+    let current = 0;      // índice da questão
+    let score = 0;        // pontuação total
+    let streak = 0;       // respostas em sequência
+    let tick = null;      // timer interval
+    let remaining = TIME_LIMIT; // tempo restante
+    let answered = false; // flag da questão
+
+    const els = {
+      scenario: document.getElementById('scenario'),
+      tags: document.getElementById('tags'),
+      answers: document.getElementById('answers'),
+      rationale: document.getElementById('rationale'),
+      score: document.getElementById('score'),
+      qnum: document.getElementById('qnum'),
+      qtotal: document.getElementById('qtotal'),
+      timer: document.getElementById('timer'),
+      streak: document.getElementById('streak'),
+      progressBar: document.getElementById('progressBar'),
+      bigProgress: document.getElementById('bigProgress'),
+      nextBtn: document.getElementById('nextBtn'),
+      skipBtn: document.getElementById('skipBtn'),
+      endcard: document.getElementById('endcard'),
+      summary: document.getElementById('summary'),
+      review: document.getElementById('review')
+    };
+
+    function shuffle(arr){
+      for(let i=arr.length-1;i>0;i--){
+        const j = Math.floor(Math.random()*(i+1));
+        [arr[i],arr[j]]=[arr[j],arr[i]];
+      }
+      return arr;
+    }
+
+    function selectDeck(){
+      const pool = shuffle([...POOL]);
+      deck = pool.slice(0, Math.min(TOTAL_QUESTIONS, pool.length));
+      els.qtotal.textContent = String(deck.length);
+    }
+
+    function startTimer(){
+      stopTimer();
+      remaining = TIME_LIMIT;
+      els.timer.textContent = remaining+"s";
+      tick = setInterval(()=>{
+        remaining--;
+        els.timer.textContent = remaining+"s";
+        if(remaining<=0){
+          stopTimer();
+          reveal(false, null, true);
+        }
+      },1000);
+    }
+
+    function stopTimer(){ if(tick){ clearInterval(tick); tick = null; } }
+
+    function renderQuestion(){
+      answered = false;
+      els.nextBtn.disabled = true;
+      els.rationale.style.display = 'none';
+      const q = deck[current];
+      els.scenario.textContent = q.text;
+      els.tags.textContent = q.tags.map(t=>`#${t}`).join(' · ');
+      els.answers.innerHTML = '';
+      const options = shuffle([...MODES]);
+      options.forEach(opt=>{
+        const btn = document.createElement('button');
+        btn.className = 'answer';
+        btn.textContent = opt;
+        btn.onclick = ()=> handleAnswer(btn, opt);
+        els.answers.appendChild(btn);
+      });
+      els.qnum.textContent = String(current+1);
+      const pct = Math.round((current)/deck.length*100);
+      els.progressBar.style.width = pct+'%';
+      els.bigProgress.textContent = pct+'%';
+      startTimer();
+    }
+
+    function handleAnswer(btn, choice){
+      if(answered) return;
+      answered = true;
+      stopTimer();
+      const q = deck[current];
+      const correct = (choice === q.answer);
+
+      // feedback visual
+      [...els.answers.children].forEach(b=>{
+        if(b.textContent === q.answer) b.classList.add('correct');
+        if(b!==btn && b.textContent===choice && !correct) b.classList.add('wrong');
+        b.disabled = true;
+      });
+
+      // pontuação: base 100 + bônus por tempo + bônus por streak
+      let gained = 0;
+      if(correct){
+        const timeBonus = Math.max(0, remaining) * 2; // até 60
+        streak = Math.min(10, streak + 1);
+        const streakBonus = (streak-1) * 5; // 0,5,10...
+        gained = 100 + timeBonus + streakBonus;
+        score += gained;
+        els.rationale.style.display = 'block';
+        els.rationale.style.color = '#d1fae5';
+        els.rationale.innerHTML = `✅ Correto! (+${gained} pts) <br><span style="color:#a7f3d0">${q.why}</span>`;
+      } else {
+        els.rationale.style.display = 'block';
+        els.rationale.style.color = '#fecaca';
+        els.rationale.innerHTML = `❌ Resposta: <b>${q.answer}</b><br><span style="color:#fca5a5">${q.why}</span>`;
+        streak = 0;
+      }
+
+      els.score.textContent = String(score);
+      els.streak.textContent = String(streak);
+      els.nextBtn.disabled = false;
+    }
+
+    function reveal(correct, why, timeout=false){
+      if(answered) return;
+      answered = true;
+      stopTimer();
+      const q = deck[current];
+      [...els.answers.children].forEach(b=>{
+        if(b.textContent === q.answer) b.classList.add('correct');
+        b.disabled = true;
+      });
+      streak = 0;
+      els.streak.textContent = String(streak);
+      els.rationale.style.display = 'block';
+      els.rationale.style.color = '#fecaca';
+      els.rationale.innerHTML = timeout ? `⏰ Tempo esgotado! Resposta: <b>${q.answer}</b><br><span style="color:#fca5a5">${q.why}</span>` : `🤔 Pulou. Resposta: <b>${q.answer}</b><br><span style="color:#fca5a5">${q.why}</span>`;
+      els.nextBtn.disabled = false;
+    }
+
+    function next(){
+      current++;
+      if(current>=deck.length){
+        endGame();
+      } else {
+        renderQuestion();
+      }
+    }
+
+    // ———————————————
+    // BÔNUS: Mini‑game p/ multiplicador
+    // ———————————————
+    function startBonus(baseScore){
+      return new Promise((resolve)=>{
+        const el = (id)=>document.getElementById(id);
+        const stage = el('bonusStage');
+        const btnStart = el('bonusStart');
+        const btnSkip = el('bonusSkip');
+        const modeG = el('modeGenius');
+        const modeF = el('modeFlappy');
+        const geniusWrap = el('geniusSection');
+        const flappyWrap = el('flappySection');
+        const geniusBoard = el('geniusBoard');
+        const geniusMsg = el('geniusMsg');
+        const flappyCanvas = document.getElementById('flappy');
+        const status = el('bonusStatus');
+
+        let mode = 'genius';
+        let running = false;
+        let multiplier = 1;
+
+        function showMode(){
+          (mode==='genius') && (geniusBoard.style.display = 'grid');
+          (mode==='flappy') && (geniusBoard.style.display = 'none');
+          modeG.classList.toggle('active', mode==='genius');
+          modeF.classList.toggle('active', mode==='flappy');
+          geniusWrap.style.display = mode==='genius' ? 'block' : 'none';
+          flappyWrap.style.display = mode==='flappy' ? 'block' : 'none';
+          status.textContent = `×${multiplier.toFixed(2)}`;
+        }
+        function open(){ stage.classList.add('show'); }
+        function close(){ stage.classList.remove('show'); }
+
+        // GENIUS
+        const tones = { g: 530, r: 360, y: 700, b: 440 };
+        const seq = [];
+        let userPos = 0, lvl = 0, geniusTimer=null, audioCtx=null;
+
+        function beep(color, dur=240){
+          try{
+            audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
+            const o = audioCtx.createOscillator(), g=audioCtx.createGain();
+            o.type='sine'; o.frequency.value=tones[color]||500;
+            o.connect(g); g.connect(audioCtx.destination);
+            g.gain.setValueAtTime(0.001, audioCtx.currentTime);
+            g.gain.linearRampToValueAtTime(0.02, audioCtx.currentTime+0.02);
+            g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime+dur/1000);
+            o.start(); o.stop(audioCtx.currentTime+dur/1000);
+          }catch(e){}
+        }
+        function flash(el,color,ms=220){
+          el.classList.add('flash'); beep(color,ms);
+          setTimeout(()=>el.classList.remove('flash'), ms);
+        }
+        const tiles = [...document.querySelectorAll('#geniusBoard .gTile')];
+        const colors = ['g','r','y','b'];
+
+        function nextLevel(){
+          lvl++; seq.push(colors[Math.floor(Math.random()*4)]);
+          geniusMsg.textContent = `Rodada ${lvl} — Observe a sequência…`;
+          userPos = 0;
+          let i=0;
+          const iv = setInterval(()=>{
+            const c = seq[i];
+            const t = tiles[colors.indexOf(c)];
+            flash(t,c);
+            if(++i>=seq.length){ clearInterval(iv); geniusMsg.textContent = 'Sua vez!'; }
+          }, 520);
+          multiplier = Math.min(2.0, 1 + (lvl*0.1));
+          status.textContent = `×${multiplier.toFixed(2)}`;
+        }
+        function geniusStart(){
+          lvl=0; seq.length=0; userPos=0; multiplier=1; status.textContent=`×1.00`;
+          nextLevel();
+          clearTimeout(geniusTimer);
+          geniusTimer = setTimeout(()=>{ finish('genius'); }, 45000);
+        }
+        function onTileClick(e){
+          if(!running || mode!=='genius') return;
+          const c = e.currentTarget.getAttribute('data-c');
+          flash(e.currentTarget,c,140);
+          if(c===seq[userPos]){
+            userPos++;
+            if(userPos===seq.length){ setTimeout(nextLevel, 450); }
+          }else{
+            multiplier = Math.max(1, multiplier-0.05);
+            status.textContent = `×${multiplier.toFixed(2)}`;
+          }
+        }
+        tiles.forEach(t=>t.addEventListener('click', onTileClick));
+
+        // FLAPPY
+        let raf=null, fl=null, ctx=null, bird=null, pipes=null;
+        function flappyStart(){
+          ctx = flappyCanvas.getContext('2d');
+          fl = { w: flappyCanvas.width, h: flappyCanvas.height, g: 0.38, jump: -7, alive:true };
+          bird = { x: 80, y: fl.h/2, vy: 0, r: 14 };
+          pipes = [];
+          multiplier = 1; status.textContent=`×1.00`;
+          spawnPipe();
+          if(raf) cancelAnimationFrame(raf);
+          raf = requestAnimationFrame(loop);
+          setTimeout(()=>finish('flappy'), 30000);
+        }
+        function spawnPipe(){
+          const gap = 130;
+          const minY = 80, maxY = fl.h-80-gap;
+          const topY = Math.floor(Math.random()*(maxY-minY))+minY;
+          pipes.push({ x: fl.w+40, w: 60, top: topY, gap: gap, passed:false });
+        }
+        function collide(p){
+          if(bird.x+bird.r > p.x && bird.x-bird.r < p.x+p.w){
+            if(bird.y-bird.r < p.top || bird.y+bird.r > p.top+p.gap) return true;
+          }
+          if(bird.y-bird.r<0 || bird.y+bird.r>fl.h) return true;
+          return false;
+        }
+        function loop(){
+          if(!fl?.alive) return;
+          bird.vy += fl.g;
+          bird.y += bird.vy;
+          pipes.forEach(p=>p.x-=3.2);
+          if(pipes.length===0 || pipes[pipes.length-1].x < fl.w-200) spawnPipe();
+          if(pipes[0].x+pipes[0].w < -10) pipes.shift();
+          for(const p of pipes){
+            if(collide(p)){ fl.alive=false; break; }
+            if(!p.passed && p.x + p.w < bird.x-bird.r){
+              p.passed = true;
+              multiplier = Math.min(2.0, multiplier + 0.05);
+              status.textContent = `×${multiplier.toFixed(2)}`;
+            }
+          }
+          ctx.fillStyle = '#06121f'; ctx.fillRect(0,0,fl.w,fl.h);
+          ctx.beginPath(); ctx.arc(bird.x, bird.y, bird.r, 0, Math.PI*2);
+          ctx.fillStyle='#f5f5f5'; ctx.fill();
+          ctx.fillStyle = '#1ec8a5';
+          pipes.forEach(p=>{
+            ctx.fillRect(p.x, 0, p.w, p.top);
+            ctx.fillRect(p.x, p.top+p.gap, p.w, fl.h-(p.top+p.gap));
+          });
+          if(fl.alive) raf = requestAnimationFrame(loop);
+          else finish('flappy');
+        }
+        function flap(){
+          if(!running || mode!=='flappy') return;
+          bird.vy = fl.jump;
+        }
+        flappyCanvas.addEventListener('mousedown', flap);
+        window.addEventListener('keydown', (e)=>{ if(e.code==='Space') flap(); }, {passive:true});
+
+        // Controle geral
+        modeG.onclick = ()=>{ if(running) return; mode='genius'; showMode(); };
+        modeF.onclick = ()=>{ if(running) return; mode='flappy'; showMode(); };
+
+        btnStart.onclick = ()=>{
+          if(running) return;
+          running = true;
+          status.textContent = `×${multiplier.toFixed(2)}`;
+          if(mode==='genius') geniusStart(); else flappyStart();
+        };
+        btnSkip.onclick = ()=>{ cleanup(); close(); resolve(1); };
+
+        function finish(){
+          if(!running) return;
+          running = false;
+          multiplier = Math.max(1, Math.min(2.0, Number(multiplier.toFixed(2))));
+          cleanup(); close(); resolve(multiplier);
+        }
+        function cleanup(){
+          if(geniusTimer) clearTimeout(geniusTimer);
+          if(raf) cancelAnimationFrame(raf);
+        }
+        open(); showMode();
+      });
+    }
+
+    async function endGame(){
+      stopTimer();
+      const panelEl = document.querySelector('.panel'); if(panelEl){ panelEl.style.opacity = .85; }
+      els.progressBar.style.width = '100%';
+      els.bigProgress.textContent = '100%';
+      
+      // === Novo fluxo: bônus de multiplicador ===
+      const base = score;
+      let mult = 1;
+      try {
+        mult = await startBonus(base);
+      } catch(e) { mult = 1; }
+      const finalScore = Math.round(base * mult);
+
+      els.endcard.style.display = 'block';
+      const max = deck.length * (100 + TIME_LIMIT*2 + 45); // pontuação máxima aproximada (antes do bônus)
+      const grade = finalScore>= max*0.85 ? 'S' : finalScore>=max*0.7 ? 'A' : finalScore>=max*0.5 ? 'B' : finalScore>=max*0.35 ? 'C' : 'D';
+      els.summary.innerHTML = `Base: <b>${base}</b> • Bônus: <b>×${mult.toFixed(2)}</b> → <b>Pontuação final: ${finalScore}</b> em ${deck.length} questões. Desempenho: <b>${grade}</b>.`;
+      els.review.innerHTML = deck.map((q,i)=>`<li><b>Q${i+1}:</b> ${q.answer} — <span style="color:var(--muted)">${q.why}</span></li>`).join('');
+    }
+
+    function restart(){
+      score=0; streak=0; current=0; els.score.textContent='0'; els.streak.textContent='0';
+      const panelEl = document.querySelector('.panel'); if(panelEl){ panelEl.style.opacity = 1; }
+      els.endcard.style.display = 'none';
+      selectDeck();
+      renderQuestion();
+    }
+
+    function toggleAnswers(){
+      const rev = els.review.style.display;
+      els.review.style.display = (rev==='none'||!rev) ? 'block' : 'none';
+    }
+
+    // eventos UI
+    els.nextBtn.addEventListener('click', next);
+    els.skipBtn.addEventListener('click', ()=> reveal(false, null, false));
+
+    // inicialização segura (garante que o DOM existe)
+    window.addEventListener('DOMContentLoaded', () => {
+      try {
+        selectDeck();
+        renderQuestion();
+      } catch (e) {
+        console.error(e);
+        if (els.scenario) els.scenario.textContent = 'Erro ao carregar o jogo. Abra o console para detalhes.';
+      }
+    });
+
+    // Helpers para personalização em aula via console
+    window.__jogo = { addScenario(s){ POOL.push(s); }, restart };
+  </script>
+</body>
+</html>
