@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Simulador de Decisão — Modos de Entrada (v2.1)</title>
+  <style>
+    body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:#0f172a;color:#fff}
+    .wrap{max-width:980px;margin:auto;padding:20px}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .card{background:#111827;border:1px solid #374151;border-radius:12px;padding:14px}
+    .btn{padding:10px 14px;border:none;border-radius:10px;cursor:pointer;margin-top:8px;font-weight:700}
+    .btn.primary{background:#3b82f6;color:#fff}
+    .btn.secondary{background:#374151;color:#fff}
+    .meter{height:6px;background:#333;border-radius:6px;overflow:hidden}
+    .meter>div{height:100%;background:#3b82f6;width:0%}
+    .muted{color:#9ca3af}
+    .options{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:6px}
+    .opt{background:#0b1227;border:1px solid #253047;border-radius:10px;padding:10px;cursor:pointer;text-align:center;font-weight:700}
+    .opt.sel{outline:2px solid #3b82f6}
+    @media(max-width:820px){.grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Simulador de Decisão — Modos de Entrada</h1>
+    <p>Rodada <b id="round">1</b>/<span id="rounds">5</span> | Pontos: <b id="score">0</b></p>
+    <div class="grid">
+      <div class="card">
+        <h3>Cenário</h3>
+        <div id="scenario">Carregando...</div>
+        <div id="tags" class="muted" style="font-size:13px;margin-top:6px"></div>
+        <div id="kvs"></div>
+        <button class="btn secondary" id="new">Novo cenário</button>
+      </div>
+      <div class="card">
+        <h3>Escolha sua estratégia</h3>
+        <div id="opts" class="options"></div>
+        <button class="btn primary" id="decide" disabled>Decidir</button>
+        <h3 style="margin-top:10px">Resultado</h3>
+        <div id="result" style="margin-top:10px;display:none"></div>
+        <button class="btn secondary" id="nextBtn" style="display:none">Próxima pergunta</button>
+      </div>
+    </div>
+    <div id="end" class="card" style="display:none;text-align:center;margin-top:14px">
+      <h2>🏁 Fim</h2>
+      <p id="summary"></p>
+      <button class="btn primary" id="restart">Reiniciar</button>
+    </div>
+  </div>
+
+<script>
+(function(){
+  const qs = (s)=>document.querySelector(s);
+  const rand = (arr)=>arr[Math.floor(Math.random()*arr.length)];
+  const rint = (a,b)=> a + Math.floor(Math.random()*(b-a+1));
+
+  const MODES = ['Exportação','Licenciamento','Franquia','Aliança estratégica','Fusão/Aquisição','Greenfield'];
+  const TRAITS = [
+    {k:'tariffs', label:'Tarifas de importação'},
+    {k:'ip', label:'Proteção de propriedade intelectual'},
+    {k:'control', label:'Necessidade de controle'},
+    {k:'speed', label:'Urgência de entrada'},
+    {k:'capex', label:'Capital disponível (CAPEX)'},
+    {k:'partners', label:'Parceiros locais confiáveis'},
+    {k:'regulation', label:'Complexidade regulatória'},
+    {k:'culture', label:'Distância cultural'}
+  ];
+  const COMPANIES = [
+  'Natura','Cacau Show','Magalu','BRF','Embraer','Stone','Ambev','Vivo','WEG','iFood',
+  'Petrobras','Vale','Localiza','Boticário','XP Investimentos','Havaianas','MRV Engenharia','Azul Linhas Aéreas'
+];
+  const COUNTRIES = [
+  'México','EUA','Índia','Portugal','Moçambique','Marrocos','Vietnam','Chile','Egito','Alemanha',
+  'Canadá','Japão','Austrália','Espanha','Colômbia','África do Sul','Emirados Árabes Unidos'
+];
+  const labelOf = (k)=> TRAITS.find(x=>x.k===k)?.label || k;
+
+  function scoreFrom(cfg, t, desc){
+    let score = 0; const pros=[], cons=[];
+    const W = {speed:1, capex:1, control:1, tariffs:1, partners:1, regulation:1, culture:1, ip:1};
+    for(const [k,w] of cfg.pro){ score += W[k]*w * (t[k]/10); pros.push(`+ ${labelOf(k)} alto favorece (${w>0?'+':''}${w})`); }
+    for(const [k,w] of cfg.con){ score += W[k]*w * (t[k]/10); cons.push(`− ${labelOf(k)} alto dificulta (${w})`); }
+    return {score: Math.round(score*10), pros, cons, desc};
+  }
+
+  const EVAL = {
+    'Exportação': (t)=> scoreFrom({ pro:[ ['speed',+2], ['capex',+2], ['control',+1] ], con:[ ['tariffs',-3], ['regulation',-1] ] }, t, 'Vende do país de origem, baixo investimento, mas sofre com tarifas e logística.'),
+    'Licenciamento': (t)=> scoreFrom({ pro:[ ['ip',+3], ['speed',+2] ], con:[ ['control',-2] ] }, t, 'Monetiza marca/tecnologia via terceiros; rápido e leve, porém com pouco controle.'),
+    'Franquia': (t)=> scoreFrom({ pro:[ ['speed',+2], ['capex',+2], ['partners',+2] ], con:[ ['control',-1], ['culture',-1] ] }, t, 'Expansão com capital do franqueado e apoio da marca; depende de parceiro forte.'),
+    'Aliança estratégica': (t)=> scoreFrom({ pro:[ ['partners',+3], ['regulation',+2] ], con:[ ['control',-1], ['speed',-1] ] }, t, 'Compartilha riscos e acesso local; requer coordenação e divide controle.'),
+    'Fusão/Aquisição': (t)=> scoreFrom({ pro:[ ['speed',+3], ['control',+3] ], con:[ ['capex',-3], ['culture',-2], ['regulation',-1] ] }, t, 'Acesso imediato a mercado e ativos; alto custo e integração complexa.'),
+    'Greenfield': (t)=> scoreFrom({ pro:[ ['control',+3] ], con:[ ['speed',-3], ['capex',-3], ['regulation',-2] ] }, t, 'Planta do zero com máximo controle; lenta, intensiva em capital e licenças.'),
+  };
+
+  const ROUNDS = 5;
+  let round = 1, score = 0, current = null, selected = null, locked = false;
+
+  const els = {
+    scenario: qs('#scenario'),
+    tags: qs('#tags'),
+    kvs: qs('#kvs'),
+    opts: qs('#opts'),
+    decide: qs('#decide'),
+    result: qs('#result'),
+    round: qs('#round'),
+    rounds: qs('#rounds'),
+    score: qs('#score'),
+    newBtn: qs('#new'),
+    nextBtn: qs('#nextBtn'),
+    end: qs('#end'),
+    summary: qs('#summary'),
+    restart: qs('#restart')
+  };
+
+  function updateHud(){ els.round.textContent = round>ROUNDS? ROUNDS : round; els.score.textContent = score; }
+
+  function renderOptions(){
+    els.opts.innerHTML='';
+    MODES.forEach(m=>{
+      const div = document.createElement('div');
+      div.className = 'opt';
+      div.textContent = m;
+      div.onclick = ()=>{
+        if(locked) return;
+        selected = m;
+        [...els.opts.children].forEach(c=>c.classList.remove('sel'));
+        div.classList.add('sel');
+        els.decide.disabled = false;
+      };
+      els.opts.appendChild(div);
+    });
+  }
+
+  function renderScenario(){
+    els.scenario.innerHTML = `<b>${current.company}</b> quer entrar em <b>${current.country}</b>. Escolha o modo de entrada conforme os fatores.`;
+    const tagList = [];
+    if(current.t.tariffs>60) tagList.push('Tarifas altas');
+    if(current.t.ip>=7) tagList.push('Boa proteção de IP'); else if(current.t.ip<=3) tagList.push('IP fraco');
+    if(current.t.speed>=7) tagList.push('Urgência');
+    if(current.t.capex<=3) tagList.push('Pouco CAPEX'); else if(current.t.capex>=8) tagList.push('CAPEX folgado');
+    if(current.t.partners>=7) tagList.push('Parceiros fortes');
+    if(current.t.regulation>=7) tagList.push('Regulação complexa');
+    if(current.t.culture>=7) tagList.push('Distância cultural alta');
+    els.tags.textContent = tagList.join(' · ');
+
+    els.kvs.innerHTML='';
+    for(const tr of TRAITS){
+      const raw = current.t[tr.k];
+      const box = document.createElement('div'); box.className='kv';
+      box.innerHTML = `<div style="display:flex;justify-content:space-between"><div>${tr.label}</div><b>${tr.k==='tariffs'? raw+'%': raw+'/10'}</b></div>`+
+                       `<div class="meter"><div style="width:${tr.k==='tariffs'? Math.min(100, raw): raw*10}%"></div></div>`;
+      els.kvs.appendChild(box);
+    }
+
+    // reset UI
+    selected = null; locked = false;
+    renderOptions();
+    els.result.style.display='none';
+    els.nextBtn.style.display='none';
+    els.decide.disabled = true;
+  }
+
+  function genScenario(){
+    const company = rand(COMPANIES);
+    const country = rand(COUNTRIES);
+    const t = {
+      tariffs: rint(0,6)*10,
+      ip: rint(2,10), control: rint(1,10), speed: rint(1,10), capex: rint(1,10), partners: rint(1,10), regulation: rint(1,10), culture: rint(1,10)
+    };
+    current = {company, country, t};
+    renderScenario();
+  }
+
+  function evaluate(){
+    if(!selected) return alert('Escolha uma estratégia antes de decidir.');
+    if(locked) return;
+    locked = true;
+
+    const t = {
+      tariffs: Math.min(100,current.t.tariffs)/10,
+      ip: current.t.ip,
+      control: current.t.control,
+      speed: current.t.speed,
+      capex: current.t.capex,
+      partners: current.t.partners,
+      regulation: current.t.regulation,
+      culture: current.t.culture,
+    };
+
+    const all = MODES.map(m=>({m, ...EVAL[m](t)})).sort((a,b)=>b.score-a.score);
+    const best = all[0];
+
+    // pontuação por proximidade (opcional)
+    const chosen = all.find(x=>x.m===selected);
+    const delta = chosen.score - best.score;
+    let pts = 0;
+    if(delta >= -5) pts = 120; else if(delta >= -15) pts = 90; else if(delta >= -30) pts = 60; else pts = 30;
+    score += pts; updateHud();
+
+    // Oculta opções e mostra resultado
+    els.opts.innerHTML = '';
+    els.decide.disabled = true;
+    els.result.style.display='block';
+    els.result.innerHTML = `
+      <div style="font-weight:800">${current.company} → ${current.country}</div>
+      <div style="margin-top:6px">Sua escolha: <b>${selected}</b> — ${pts} pts</div>
+      <div style="margin-top:6px">Melhor estratégia: <b>${best.m}</b></div>
+      <div class="muted" style="margin-top:6px">${chosen.desc}</div>
+      <div style="margin-top:8px">Top 3 alternativas:</div>
+      <ol style="margin-top:4px">
+        ${all.slice(0,3).map(x=>`<li><b>${x.m}</b> (${x.score}) — <span class=\"muted\">${x.pros[0]||''}${x.cons[0]?` · ${x.cons[0]}`:''}</span></li>`).join('')}
+      </ol>
+    `;
+    els.nextBtn.style.display='inline-block';
+  }
+
+  function nextRound(){
+    round++;
+    if(round>ROUNDS){ finish(); }
+    else { genScenario(); updateHud(); }
+  }
+
+  function finish(){
+    const grade = score>= ROUNDS*110 ? 'S' : score>=ROUNDS*90? 'A' : score>=ROUNDS*70? 'B' : score>=ROUNDS*50? 'C':'D';
+    els.end.style.display='block';
+    els.summary.innerHTML = `Você somou <b>${score}</b> pontos em ${ROUNDS} rodadas. Desempenho: <b>${grade}</b>.`;
+  }
+
+  function restart(){ score=0; round=1; updateHud(); els.end.style.display='none'; genScenario(); }
+
+  window.addEventListener('DOMContentLoaded', ()=>{
+    els.rounds.textContent = ROUNDS;
+    updateHud();
+    els.newBtn.addEventListener('click', genScenario);
+    els.decide.addEventListener('click', evaluate);
+    els.nextBtn.addEventListener('click', nextRound);
+    els.restart.addEventListener('click', restart);
+    genScenario();
+  });
+})();
+</script>
+</body>
+</html>
